@@ -1,100 +1,97 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { 
-	CharStreams, 
-	CommonTokenStream, 
-	Token as AntlrToken, 
-	CodePointCharStream, 
-	ANTLRErrorListener,
-	Recognizer,
-	RecognitionException
-} from 'antlr4ts';
+/**
+ * Performs the parsing of the text document.
+ * @module Parser
+ */
 
-import { ProgramLexer } from './parser/ProgramLexer';
-import { ProgramParser } from './parser/ProgramParser';
+import * as fs from "fs";
+import * as path from "path";
+import { Token as AntlrToken } from "antlr4ts";
+import { Processor } from "./processor";
+import { ParserError } from "./parserError";
+import { ErrorListener } from "./errorListener";
 
-class Processor {
-	inputStream: CodePointCharStream;
-	lexer: ProgramLexer;
-	tokenStream: CommonTokenStream;
-	parser: ProgramParser;
+/**
+ * Set of the token types present in the EO's grammar file
+ */
+let tokenTypes: Set<string> | undefined;
 
-	constructor(input: string) {
-		this.inputStream = CharStreams.fromString(input);
-		this.lexer = new ProgramLexer(this.inputStream);
-		this.tokenStream = new CommonTokenStream(this.lexer);
-		this.parser = new ProgramParser(this.tokenStream);
-	}
-}
+/**
+ * Maps the token numbers returned by the parser to the token type names
+ * present in the EO's grammar file
+ */
+let tokenNumToString: Map<number, string> | undefined;
 
-class Error {
-	line: number;
-	column: number;
-	msg: string;
-
-	constructor(line: number, column: number, msg: string) {
-		this.line = line;
-		this.column = column;
-		this.msg = msg;
-	}
-}
-
-class ErrorListener implements ANTLRErrorListener<AntlrToken> {
-	errorList: Error[] = [];
-	
-	syntaxError(recognizer: Recognizer<AntlrToken, any>, offendingSymbol: AntlrToken | undefined, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined) {
-		this.errorList.push(new Error(line, charPositionInLine, msg));
-	}
-}
-
-let tokenTypes: Set<string> | undefined = undefined;
-let tokenNumToString: Map<number, string> | undefined = undefined;
-
+/**
+ * Builds the token type set and token number to token type map using the ANTLR4
+ * tokens file, if any of these has not been built yet.
+ * @returns {void}
+ */
 function buildTokenSetAndMap() {
-	if (!tokenTypes || !tokenNumToString) {
-		tokenTypes = new Set<string>();
-		tokenNumToString = new Map<number, string>();
-		const tokensPath = path.join(__dirname, "../resources/ProgramLexer.tokens");
-		try {
-			const text = fs.readFileSync(tokensPath, {encoding: 'utf-8'});
-			text.split('\n').forEach(elem => {
-				if (elem[0] != "'") {
-					const pair = elem.split('=');
-					tokenTypes!.add(pair[0]);
-					tokenNumToString!.set(Number(pair[1]), pair[0]);
-				}
-			});
-		} catch (e) {
-			console.log(e);
-		}
-	}
+    if (!tokenTypes || !tokenNumToString) {
+        tokenTypes = new Set<string>();
+        tokenNumToString = new Map<number, string>();
+        const tokensPath = path.join(__dirname, "../resources/ProgramLexer.tokens");
+
+        try {
+            const text = fs.readFileSync(tokensPath, { encoding: "utf-8" });
+
+            text.split("\n").forEach(elem => {
+                if (elem[0] !== "'") {
+                    const pair = elem.split("=");
+
+                    tokenTypes!.add(pair[0]);
+                    tokenNumToString!.set(Number(pair[1]), pair[0]);
+                }
+            });
+        } catch (e) {
+            throw new Error("ProgramLexer.tokens file missing");
+        }
+    }
 }
 
 /**
- * Antlr lexer returns token types as numbers
- * This converts a type number into textual token type like "META"
+ * Converts a type number into textual token type like "META", since antlr lexer
+ * returns token types as numbers
+ * @param num - Number of the token type returned by the parser
+ * @returns - Name of the token type defined by EO's grammar
  */
 export function antlrTypeNumToString(num: number): string {
-	buildTokenSetAndMap();
-	return tokenNumToString!.get(num)!;
+    buildTokenSetAndMap();
+    return tokenNumToString!.get(num)!;
 }
 
+/**
+ * Retrieves all token type names as defined in EO's grammar
+ * @returns - Set of all the token type names define in EO's grammar
+ */
 export function getTokenTypes(): Set<string> {
-	buildTokenSetAndMap();
-	return tokenTypes!;
+    buildTokenSetAndMap();
+    return tokenTypes!;
 }
 
+/**
+ * Tokenizes an input text using the ANTLR4 tokenizer
+ * @param input - Text to be tokenized
+ * @returns - Array of AntlrTokens containing the tokens in the text
+ */
 export function tokenize(input: string): AntlrToken[] {
-	const processor = new Processor(input);
-	processor.tokenStream.fill();
-	return processor.tokenStream.getTokens();
+    const processor = new Processor(input);
+
+    processor.tokenStream.fill();
+    return processor.tokenStream.getTokens();
 }
 
-export function getParserErrors(input: string): Error[] {
-	const processor = new Processor(input);
-	const errorListener = new ErrorListener();
-	processor.parser.addErrorListener(errorListener);
-	processor.parser.program();
-	return errorListener.errorList;
-	
+/**
+ * Parses the input text and returns the parsing errors detected
+ * @param input - Text to be parsed
+ * @returns - Array of parsing errors detected during the parsing
+ */
+export function getParserErrors(input: string): ParserError[] {
+    const processor = new Processor(input);
+    const errorListener = new ErrorListener();
+
+    processor.parser.addErrorListener(errorListener);
+    processor.parser.program();
+    return errorListener.errorList;
+
 }
