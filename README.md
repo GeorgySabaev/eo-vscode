@@ -18,7 +18,7 @@ You can also install it from [its page](https://marketplace.visualstudio.com/ite
 ## Structure
 Theis extension is written in **TypeScript**, was developed with **Node 16** and has two main parts: the client and the server. Inside `server/src` yo can find all the code related to the server side. All the code for the client side is located at `client/src`.
 
-The code parser is generated with ANTLR4 using the latest version of the EO grammar located in this [link](https://raw.githubusercontent.com/objectionary/eo/master/eo-parser/src/main/antlr4/org/eolang/parser/Program.g4).
+The code parser is generated with ANTLR4 using the latest version of the EO grammar located in this [link](https://raw.githubusercontent.com/objectionary/eo/master/eo-parser/src/main/antlr4/org/eolang/parser/Eo.g4).
 
 Publishing the extension is done with [Rultor](https://github.com/yegor256/rultor) (see `.rultor.yml`).
 
