@@ -25,7 +25,12 @@ Publishing the extension is done with [Rultor](https://github.com/yegor256/rulto
 ## How to Contribute
 Read the code documentation which can be found [here](https://www.objectionary.com/eo-vscode/).
 
-Clone the repository. Install node modules with:
+Clone the repository. Pass the `--recurse-submodules` flag when cloning, or initialise the submodule after the fact using:
+```bash
+$ git submodule update --init --recursive
+```
+
+Install node modules with:
 ```bash
 $ npm install
 ```
